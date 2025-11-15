@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система бронирования | Booking System</title>
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #calendar {
+            max-width: 1200px;
+            margin: 40px auto;
+        }
+
+        .fc-event {
+            cursor: pointer;
+        }
+
+        .property-selector {
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats-card h3 {
+            margin: 0;
+            font-size: 2em;
+        }
+
+        .stats-card p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .booking-modal .modal-body {
+            padding: 20px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .price-breakdown {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .price-breakdown .total {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #667eea;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            border-color: #90caf9;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">🏠 Система бронирования жилья</h1>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3 id="total-bookings">0</h3>
+                    <p>Активных бронирований</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3 id="revenue">0₽</h3>
+                    <p>Выручка за месяц</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="property-selector">
+                    <label for="property-select" class="form-label">Выберите объект:</label>
+                    <select class="form-select" id="property-select">
+                        <option value="1">Квартира в центре</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info" role="alert">
+            <strong>Инструкция:</strong> Кликните на свободную дату для создания нового бронирования.
+            Кликните на существующее бронирование для просмотра деталей.
+        </div>
+
+        <div id="calendar"></div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новое бронирование</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="booking-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="check-in" class="form-label">Дата заезда</label>
+                                <input type="date" class="form-control" id="check-in" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="check-out" class="form-label">Дата выезда</label>
+                                <input type="date" class="form-control" id="check-out" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <label for="guest-name" class="form-label">ФИО гостя</label>
+                                <input type="text" class="form-control" id="guest-name" placeholder="Иванов Иван Иванович" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="guest-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="guest-email" placeholder="ivanov@example.com" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="guest-phone" class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="guest-phone" placeholder="+7 (900) 123-45-67" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="num-guests" class="form-label">Количество гостей</label>
+                                <input type="number" class="form-control" id="num-guests" min="1" value="2" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="num-adults" class="form-label">Взрослых</label>
+                                <input type="number" class="form-control" id="num-adults" min="1" value="2" required>
+                            </div>
+                        </div>
+
+                        <label for="special-requests" class="form-label">Особые пожелания</label>
+                        <textarea class="form-control" id="special-requests" rows="3" placeholder="Ранний заезд, детская кроватка, и т.д."></textarea>
+
+                        <div id="price-preview" class="price-breakdown" style="display: none;">
+                            <h6>Стоимость бронирования:</h6>
+                            <div id="price-details"></div>
+                            <div class="total" id="total-price">Итого: 0₽</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="calculate-price-btn">Рассчитать цену</button>
+                    <button type="button" class="btn btn-success" id="create-booking-btn" style="display: none;">Создать бронирование</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/ru.global.min.js"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = '../api/v1';
+        let calendar;
+        let selectedPropertyId = 1;
+        let currentPricing = null;
+
+        // Initialize calendar
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ru',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                editable: false,
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                weekends: true,
+
+                // Click on date to create booking
+                dateClick: function(info) {
+                    openBookingModal(info.dateStr);
+                },
+
+                // Click on event to view details
+                eventClick: function(info) {
+                    viewBookingDetails(info.event);
+                },
+
+                // Load events from API
+                events: function(info, successCallback, failureCallback) {
+                    loadBookings(selectedPropertyId, info.startStr, info.endStr, successCallback, failureCallback);
+                }
+            });
+
+            calendar.render();
+
+            // Load initial stats
+            loadStats();
+
+            // Property selector change
+            document.getElementById('property-select').addEventListener('change', function() {
+                selectedPropertyId = this.value;
+                calendar.refetchEvents();
+                loadStats();
+            });
+
+            // Calculate price button
+            document.getElementById('calculate-price-btn').addEventListener('click', calculatePrice);
+
+            // Create booking button
+            document.getElementById('create-booking-btn').addEventListener('click', createBooking);
+
+            // Auto-calculate price when dates change
+            document.getElementById('check-in').addEventListener('change', autoCalculatePrice);
+            document.getElementById('check-out').addEventListener('change', autoCalculatePrice);
+        });
+
+        // Load bookings from API
+        async function loadBookings(propertyId, startDate, endDate, successCallback, failureCallback) {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/bookings/availability/${propertyId}?start_date=${startDate}&end_date=${endDate}`
+                );
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successCallback(data.data.events);
+                } else {
+                    failureCallback(data.message);
+                }
+            } catch (error) {
+                console.error('Failed to load bookings:', error);
+                failureCallback(error.message);
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/bookings/list?property_id=${selectedPropertyId}&status=confirmed`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const bookings = data.data.bookings || [];
+                    document.getElementById('total-bookings').textContent = bookings.length;
+
+                    // Calculate revenue
+                    const revenue = bookings.reduce((sum, booking) => sum + parseFloat(booking.total_price || 0), 0);
+                    document.getElementById('revenue').textContent = revenue.toFixed(0) + '₽';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Open booking modal
+        function openBookingModal(dateStr) {
+            const checkInDate = new Date(dateStr);
+            const checkOutDate = new Date(checkInDate);
+            checkOutDate.setDate(checkOutDate.getDate() + 2);
+
+            document.getElementById('check-in').value = dateStr;
+            document.getElementById('check-out').value = checkOutDate.toISOString().split('T')[0];
+
+            document.getElementById('price-preview').style.display = 'none';
+            document.getElementById('create-booking-btn').style.display = 'none';
+
+            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+            modal.show();
+        }
+
+        // Auto-calculate price when dates change
+        function autoCalculatePrice() {
+            const checkIn = document.getElementById('check-in').value;
+            const checkOut = document.getElementById('check-out').value;
+
+            if (checkIn && checkOut && checkOut > checkIn) {
+                calculatePrice();
+            }
+        }
+
+        // Calculate price
+        async function calculatePrice() {
+            const checkIn = document.getElementById('check-in').value;
+            const checkOut = document.getElementById('check-out').value;
+
+            if (!checkIn || !checkOut) {
+                alert('Пожалуйста, выберите даты заезда и выезда');
+                return;
+            }
+
+            try {
+                // Note: This is a simplified example
+                // In real implementation, call your pricing API
+                const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+                const basePrice = 3000; // Base price per night
+                const total = basePrice * nights;
+
+                // Add weekend surcharge (simplified)
+                const weekendNights = 0; // Calculate actual weekend nights
+                const weekendSurcharge = weekendNights * basePrice * 0.2;
+
+                currentPricing = {
+                    base_price: basePrice,
+                    nights: nights,
+                    total_price: total + weekendSurcharge,
+                    breakdown: [
+                        { description: `Базовая цена (${nights} ночей × ${basePrice}₽)`, amount: basePrice * nights },
+                        { description: `Наценка за выходные`, amount: weekendSurcharge }
+                    ]
+                };
+
+                displayPricing(currentPricing);
+
+            } catch (error) {
+                console.error('Failed to calculate price:', error);
+                alert('Не удалось рассчитать цену');
+            }
+        }
+
+        // Display pricing
+        function displayPricing(pricing) {
+            let html = '';
+
+            pricing.breakdown.forEach(item => {
+                if (item.amount > 0) {
+                    html += `<div>${item.description}: <strong>${item.amount.toFixed(0)}₽</strong></div>`;
+                }
+            });
+
+            document.getElementById('price-details').innerHTML = html;
+            document.getElementById('total-price').textContent = `Итого: ${pricing.total_price.toFixed(0)}₽`;
+            document.getElementById('price-preview').style.display = 'block';
+            document.getElementById('create-booking-btn').style.display = 'inline-block';
+        }
+
+        // Create booking
+        async function createBooking() {
+            const form = document.getElementById('booking-form');
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const guestName = document.getElementById('guest-name').value.split(' ');
+
+            const bookingData = {
+                property_id: selectedPropertyId,
+                check_in: document.getElementById('check-in').value,
+                check_out: document.getElementById('check-out').value,
+                number_of_guests: parseInt(document.getElementById('num-guests').value),
+                number_of_adults: parseInt(document.getElementById('num-adults').value),
+                special_requests: document.getElementById('special-requests').value,
+                guest: {
+                    first_name: guestName[1] || '',
+                    last_name: guestName[0] || '',
+                    middle_name: guestName[2] || '',
+                    email: document.getElementById('guest-email').value,
+                    phone: document.getElementById('guest-phone').value
+                }
+            };
+
+            try {
+                // Note: Simplified - in real implementation, create guest first, then booking
+                console.log('Creating booking:', bookingData);
+
+                alert('Бронирование создано успешно!\n\n(Это демо-версия. Для реальной работы подключите API)');
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                modal.hide();
+
+                calendar.refetchEvents();
+                loadStats();
+
+            } catch (error) {
+                console.error('Failed to create booking:', error);
+                alert('Не удалось создать бронирование');
+            }
+        }
+
+        // View booking details
+        function viewBookingDetails(event) {
+            alert(`Бронирование #${event.id}\n\nСтатус: ${event.extendedProps.status}\nДаты: ${event.startStr} - ${event.endStr}`);
+        }
+    </script>
+</body>
+</html>
